@@ -68,7 +68,7 @@ feature {NONE}
 	layers: ARRAYED_LIST[ARRAYED_LIST[NEURON]]
 		-- Actual layers
 	weights: LINKED_LIST[TUPLE[l, j, k: INTEGER; value: REAL_64]]
-		-- List of weights where each weight is a tuple of the direction(i -> j) and the value
+		-- List of weights where each weight is a tuple of the direction(l -> j) and the value
 	learning_rate: REAL_64 = 0.75
 		-- Learning rate of the network. Might become an argument to make.
 
@@ -118,6 +118,7 @@ feature
 		end
 
 	hadamard_product(a_vector1, a_vector2: LIST[REAL_64]): LIST[REAL_64]
+			-- Result[i] = `a_vector1'[i] * `a_vector2'[i]
 		require
 			Vectors_Same_Size: a_vector1.count = a_vector2.count
 		do
