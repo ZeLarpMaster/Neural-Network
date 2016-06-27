@@ -1,0 +1,7 @@
+# Enlever le dossier de compilation
+EIFGENs/
+
+# Enlever les fichiers inutiles
+*.rc
+*.log
+*.dll
