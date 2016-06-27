@@ -1,8 +1,8 @@
 note
 	description: "Implemented mathematical representation of a biological neuron."
 	author: "Guillaume Jean"
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "2016-06-27"
+	revision: "16w26"
 
 class
 	NEURON
@@ -14,56 +14,59 @@ create
 	make,
 	make_sigmoidal
 
-feature {NONE}
-	make(a_initial_bias: REAL_64)
+feature {NONE} -- Initialization
+
+	make(a_initial_bias: REAL_64; a_output: OUTPUT; a_inputs_count: INTEGER)
 		do
 			is_sigmoidal := False
-			current_output := 0
 			bias := a_initial_bias
+			output := a_output
+			create {ARRAYED_LIST[INPUT]} inputs.make(a_inputs_count)
 		end
 
-	make_sigmoidal(a_initial_bias: REAL_64)
+	make_sigmoidal(a_initial_bias: REAL_64; a_output: OUTPUT; a_inputs_count: INTEGER)
 		do
-			make(a_initial_bias)
+			make(a_initial_bias, a_output, a_inputs_count)
 			is_sigmoidal := True
 		end
 
-feature {NONE}
-	is_sigmoidal: BOOLEAN
-		-- if this is true, then the neuron is sigmoidal else this is a sign neuron.
-	current_output: REAL_64
-		-- this is 0 or 1 when this is a sign neuron.
-	bias: REAL_64
-		-- bias of the neuron
+feature -- Access
 
-feature
-	calculate_output(a_reference: REAL_64; a_inputs: LINKED_LIST[TUPLE[weight, input: REAL_64]]):REAL_64
+	is_sigmoidal: BOOLEAN
+			-- if this is true, then the neuron is sigmoidal else this is a sign neuron.
+
+	bias: REAL_64 assign set_bias
+			-- bias of the neuron
+
+	output: OUTPUT
+			-- The value calculated by `Current' using the `inputs' updated by `update_output'
+
+	inputs: LIST[INPUT]
+			-- List of inputs used to update the `output'
+
+	update_output
+			-- Calculates the new value of `output' with the current value of the `inputs'
 		local
 			l_weighted_inputs_sum: REAL_64
 		do
 			l_weighted_inputs_sum := 0
-			from
-				a_inputs.start
-			until
-				a_inputs.after
-			loop
-				l_weighted_inputs_sum := l_weighted_inputs_sum + (a_inputs.item.weight * a_inputs.item.input)
-				a_inputs.forth
+			across inputs as la_inputs loop
+				l_weighted_inputs_sum := l_weighted_inputs_sum + la_inputs.item.value
 			end
-			l_weighted_inputs_sum := l_weighted_inputs_sum - a_reference
+			l_weighted_inputs_sum := l_weighted_inputs_sum + bias
 			if is_sigmoidal then
-				current_output := 1 / (1 + (Euler ^ -l_weighted_inputs_sum))
+				output.set_value(1 / (1 + (Euler ^ -l_weighted_inputs_sum)))
 			else
-				if l_weighted_inputs_sum >= 0 then
-					current_output := 1
+				if l_weighted_inputs_sum > 0 then
+					output.set_value(1)
 				else
-					current_output := 0
+					output.set_value(0)
 				end
 			end
-			Result := current_output
 		end
 
 	set_bias(a_new_bias: REAL_64)
+			-- Modifies `bias'
 		do
 			bias := a_new_bias
 		end

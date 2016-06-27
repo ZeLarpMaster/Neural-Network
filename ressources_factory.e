@@ -47,25 +47,25 @@ feature {NONE} -- Initialization
 			if attached load_image(a_renderer, "x") as la_image then
 				x_image := la_image
 			else
-				create x_image.make_not_lockable (a_renderer, a_format, 1, 1)
+				create x_image.make (a_renderer, a_format, 1, 1)
 				has_error := True
 			end
 			if not has_error and then attached load_image(a_renderer, "o") as la_image then
 				o_image := la_image
 			else
-				create o_image.make_not_lockable (a_renderer, a_format, 1, 1)
+				create o_image.make (a_renderer, a_format, 1, 1)
 				has_error := True
 			end
 			if not has_error and then attached load_image(a_renderer, "panel") as la_image then
 				grid_image := la_image
 			else
-				create grid_image.make_not_lockable (a_renderer, a_format, 1, 1)
+				create grid_image.make (a_renderer, a_format, 1, 1)
 				has_error := True
 			end
 			if not has_error and then attached load_image(a_renderer, "win") as la_image then
 				winning_image := la_image
 			else
-				create winning_image.make_not_lockable (a_renderer, a_format, 1, 1)
+				create winning_image.make (a_renderer, a_format, 1, 1)
 				has_error := True
 			end
 		end

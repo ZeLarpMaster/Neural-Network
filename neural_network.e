@@ -1,8 +1,8 @@
 note
 	description: "Implementation of a network of neurons with X layers of Y neurons"
 	author: "Guillaume Jean"
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "2016-06-27"
+	revision: "16w26"
 
 class
 	NEURAL_NETWORK
@@ -11,47 +11,57 @@ create
 	make
 
 feature {NONE}
-	make(a_layers: LINKED_LIST[INTEGER])
+	make(a_layers_count: LIST[INTEGER])
+		require
+			More_Than_One_Layer: a_layers_count.count > 1
 		local
 			l_layer_content: ARRAYED_LIST[NEURON]
 			l_neuron: NEURON
+			l_previous_output_count: INTEGER
+			l_output: OUTPUT
+			l_input: INPUT
 		do
-			create {ARRAYED_LIST[ARRAYED_LIST[NEURON]]} layers.make(a_layers.count)
-			create {LINKED_LIST[TUPLE[l, j, k: INTEGER; value: REAL_64]]} weights.make
+			l_previous_output_count := 1
+			create {ARRAYED_LIST[ARRAYED_LIST[NEURON]]} layers.make(a_layers_count.count)
 			from
-				a_layers.start
-				layers.start
+				a_layers_count.start
 			until
-				a_layers.after or layers.after
+				a_layers_count.exhausted
 			loop
-				create l_layer_content.make(a_layers.item)
-				if a_layers.isfirst then
-					across 1 |..| a_layers.item as la_neurons loop
-						random_sequence.forth
-						create {INPUT_NEURON} l_neuron.make_sigmoidal
-						l_layer_content.put_i_th(l_neuron, la_neurons.item)
+				create l_layer_content.make(a_layers_count.item)
+				across 1 |..| a_layers_count.item as la_neurons loop
+					random_sequence.forth
+					if a_layers_count.islast then
+						create l_output.make(0)
+					else
+						create {HOOKED_OUTPUT} l_output.make(0)
 					end
-				else
-					across 1 |..| a_layers.item as la_neurons loop
-						random_sequence.forth
-						create {NEURON} l_neuron.make_sigmoidal(random_sequence.double_item)
-						l_layer_content.put_i_th(l_neuron, la_neurons.item)
-						a_layers.back
-						across 1 |..| a_layers.item as la_neurons_l_minus loop
-							random_sequence.forth
-							weights.extend([layers.index, la_neurons.item, la_neurons_l_minus.item, random_sequence.double_item.abs])
+					create l_neuron.make_sigmoidal(random_sequence.double_item, l_output, l_previous_output_count)
+					across 1 |..| l_previous_output_count as la_previous_output_count loop
+						if a_layers_count.isfirst then
+							create l_input.make(0)
+						else
+							create {INPUT_CONNECTION} l_input.make(0)
+							if
+								attached {HOOKED_OUTPUT} layers.at(a_layers_count.index - 1).at(la_previous_output_count.item).output as la_output and
+								attached {INPUT_CONNECTION} l_input as la_input
+							then
+								la_output.connections.extend(la_input)
+							end
 						end
-						a_layers.forth
+						l_neuron.inputs.extend(l_input)
 					end
+					l_layer_content.extend(l_neuron)
 				end
-				layers.put(l_layer_content)
-				a_layers.forth
-				layers.forth
+
+				layers.extend(l_layer_content)
+				a_layers_count.forth
 			end
 		end
 
 feature {NONE}
 	random_sequence: RANDOM
+			-- Returns a new random sequence
 		local
 			l_time: TIME
 			l_seed: INTEGER
@@ -64,35 +74,61 @@ feature {NONE}
 			create Result.set_seed (l_seed)
 		end
 
-feature {NONE}
-	layers: ARRAYED_LIST[ARRAYED_LIST[NEURON]]
-		-- Actual layers
-	weights: LINKED_LIST[TUPLE[l, j, k: INTEGER; value: REAL_64]]
-		-- List of weights where each weight is a tuple of the direction(l -> j) and the value
-	learning_rate: REAL_64 = 0.75
-		-- Learning rate of the network. Might become an argument to make.
+feature {NONE} -- Implementation
 
-feature
-	learn_back_propagate(x, y: LIST[REAL_64])
-		-- X is input
-		-- Y is expected output for X
-		-- TODO: HOW DO I MAKE IT LEARN TO PLAY AND NOT TO LEARN BY HEART HOW TO PLAY
-		-- Wi,j = Wi,j + learning * outputj * deltaj
-		-- Error = 0.5 * (expected output - actual output) ^ 2
+	learning_rate: REAL_64 = 0.75
+			-- Learning rate of the network. Might become an argument to make.
+
+feature -- Access
+
+	layers: LIST[LIST[NEURON]]
+			-- Actual layers
+
+	learn_back_propagate(a_input, a_expected_output: LIST[REAL_64])
+			-- Make the network learn the `a_input', `a_expected_output' pair
+			-- TODO: HOW DO I MAKE IT LEARN TO PLAY AND NOT TO LEARN BY HEART HOW TO PLAY
+			-- Wi,j = Wi,j + learning * outputj * deltaj
+			-- Error = 0.5 * (expected output - actual output) ^ 2
 		local
 			l_neuron_weights: LINKED_LIST[TUPLE[weight, input: REAL_64]]
 			l_current_output: ARRAYED_LIST[REAL_64]
 			l_desired_output: ARRAYED_LIST[REAL_64]
 			l_output_delta: ARRAYED_LIST[REAL_64]
 		do
-
+			feed_forward(a_input)
 		end
 
-	calculate_activations
-		local
-			l_activations: AL_MATRIX
+	feed_forward(a_input: LIST[REAL_64])
+			-- Calculate the activation of each neuron from the output of the previous layer using `a_input' as input
+			-- TODO: Redo this ^
+		require
+			Input_Count_Equals_Input_Count: a_input.count = layers.at(1).count
 		do
-
+			from
+				layers.first.start
+				a_input.start
+			until
+				layers.first.exhausted or a_input.exhausted
+			loop
+				layers.first.item.inputs.first.set_value(a_input.item)
+				layers.first.forth
+				a_input.forth
+			end
+			from
+				layers.go_i_th(2)
+			until
+				layers.exhausted
+			loop
+				from
+					layers.item.start
+				until
+					layers.item.exhausted
+				loop
+					layers.item.item.update_output
+					layers.item.forth
+				end
+				layers.forth
+			end
 		end
 
 	matrix_product_vector(a_matrix: LIST[LIST[REAL_64]]; a_vector: LIST[REAL_64]): LIST[REAL_64]
@@ -134,4 +170,8 @@ feature
 				a_vector2.forth
 			end
 		end
+
+invariant
+	More_Than_One_Layer: layers.count > 1
+	Input_Layer_Has_One_Input: layers.first.for_all(agent (a_neuron: NEURON): BOOLEAN do Result := a_neuron.inputs.count = 1 end)
 end

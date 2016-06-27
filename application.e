@@ -35,6 +35,7 @@ feature {NONE} -- Initialization
 			l_window_builder:GAME_WINDOW_RENDERED_BUILDER
 			l_window:GAME_WINDOW_RENDERED
 		do
+			create l_window_builder
 			l_window_builder.is_resizable := True
 			l_window_builder.must_renderer_support_texture_target := True
 			l_window := l_window_builder.generate_window
