@@ -13,7 +13,8 @@ inherit
 create
 	make
 
-feature {NONE}
+feature {NONE} -- Initialization
+
 	make(a_layers_count: LIST[INTEGER])
 		require
 			More_Than_One_Layer: a_layers_count.count > 1
@@ -56,8 +57,8 @@ feature {NONE}
 					end
 					l_layer_content.extend(l_neuron)
 				end
-
 				layers.extend(l_layer_content)
+				l_previous_output_count := a_layers_count.item
 				a_layers_count.forth
 			end
 		end
@@ -199,7 +200,7 @@ feature -- Access
 					attached {HOOKED_OUTPUT} la_layer.item.output as la_output implies la_output.connections.count = a_previous_error.count
 				end
 		do
-			create {ARRAYED_LIST[REAL_64]} Result.make_filled(a_previous_error.count)
+			create {ARRAYED_LIST[REAL_64]} Result.make_filled(a_neuron_layer.count)
 			Result.start
 			across a_neuron_layer as la_layer loop
 				if attached {HOOKED_OUTPUT} la_layer.item.output as la_output then

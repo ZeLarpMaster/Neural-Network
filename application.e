@@ -101,9 +101,9 @@ feature {NONE} -- Initialization
 				create l_current_label.make(l_expected_number.out, l_font, l_foreground, l_background)
 				a_window.surface.draw_surface(l_current_label, 50, 10)
 				a_window.update
-				l_expected_output.at(l_expected_number) := 1.0
+				l_expected_output.at(l_expected_number + 1) := 1.0
 				l_neural_network.learn_back_propagate(l_pixel_values, l_expected_output)
-				l_expected_output.at(l_expected_number) := 0.0
+				l_expected_output.at(l_expected_number + 1) := 0.0
 				k := k + 1
 			end
 		end
