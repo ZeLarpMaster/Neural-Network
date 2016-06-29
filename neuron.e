@@ -8,7 +8,7 @@ class
 	NEURON
 
 inherit
-	MATH_CONST
+	MATH_UTILITY
 
 create
 	make,
@@ -44,20 +44,21 @@ feature -- Access
 	inputs: LIST[INPUT]
 			-- List of inputs used to update the `output'
 
+	weighted_total_input: REAL_64
+			-- The sum of `inputs' + `bias'
+
 	update_output
 			-- Calculates the new value of `output' with the current value of the `inputs'
-		local
-			l_weighted_inputs_sum: REAL_64
 		do
-			l_weighted_inputs_sum := 0
+			weighted_total_input := 0
 			across inputs as la_inputs loop
-				l_weighted_inputs_sum := l_weighted_inputs_sum + la_inputs.item.value
+				weighted_total_input := weighted_total_input + la_inputs.item.value
 			end
-			l_weighted_inputs_sum := l_weighted_inputs_sum + bias
+			weighted_total_input := weighted_total_input + bias
 			if is_sigmoidal then
-				output.set_value(1 / (1 + (Euler ^ -l_weighted_inputs_sum)))
+				output.set_value(sigmoid(weighted_total_input))
 			else
-				if l_weighted_inputs_sum > 0 then
+				if weighted_total_input > 0 then
 					output.set_value(1)
 				else
 					output.set_value(0)

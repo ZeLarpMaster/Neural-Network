@@ -7,6 +7,9 @@ note
 class
 	NEURAL_NETWORK
 
+inherit
+	MATH_UTILITY
+
 create
 	make
 
@@ -84,18 +87,75 @@ feature -- Access
 	layers: LIST[LIST[NEURON]]
 			-- Actual layers
 
-	learn_back_propagate(a_input, a_expected_output: LIST[REAL_64])
-			-- Make the network learn the `a_input', `a_expected_output' pair
-			-- TODO: HOW DO I MAKE IT LEARN TO PLAY AND NOT TO LEARN BY HEART HOW TO PLAY
-			-- Wi,j = Wi,j + learning * outputj * deltaj
-			-- Error = 0.5 * (expected output - actual output) ^ 2
-		local
-			l_neuron_weights: LINKED_LIST[TUPLE[weight, input: REAL_64]]
-			l_current_output: ARRAYED_LIST[REAL_64]
-			l_desired_output: ARRAYED_LIST[REAL_64]
-			l_output_delta: ARRAYED_LIST[REAL_64]
+	use_network(a_input: LIST[REAL_64]): LIST[REAL_64]
+			-- Use the neural network with input `a_input' and returns the output
 		do
 			feed_forward(a_input)
+			create {ARRAYED_LIST[REAL_64]} Result.make(layers.last.count)
+			from
+				layers.last.start
+			until
+				layers.last.exhausted
+			loop
+				Result.extend(layers.last.item.output.value)
+				layers.last.forth
+			end
+		end
+
+	learn_back_propagate(a_input, a_expected_output: LIST[REAL_64])
+			-- Make the network learn the `a_input', `a_expected_output' pair
+		require
+			Inputs_Network_Size: a_expected_output.count = layers.last.count
+		do
+			feed_forward(a_input)
+			backpropagate_error(a_expected_output)
+		end
+
+	backpropagate_error(a_expected_output: LIST[REAL_64])
+			-- Propagates the output error compared to `a_expected_output' from the end to the layer 2 of the network
+		require
+			Outputs_Network_Size: a_expected_output.count = layers.last.count
+		local
+			l_previous_layer_error: LIST[REAL_64]
+			l_all_errors: LIST[LIST[REAL_64]]
+		do
+			create {ARRAYED_LIST[LIST[REAL_64]]} l_all_errors.make(layers.count)
+			l_previous_layer_error := calculate_output_error(a_expected_output)
+			l_all_errors.extend(l_previous_layer_error)
+			from
+				layers.go_i_th(layers.count - 1)
+			until
+				layers.index < 2
+			loop
+				l_previous_layer_error := neuron_layer_error(layers.item, l_previous_layer_error)
+				l_all_errors.extend(l_previous_layer_error)
+				layers.back
+			end
+		end
+
+	calculate_output_error(a_expected_output: LIST[REAL_64]): LIST[REAL_64]
+			-- Calculates and returns the error of the output
+			-- Side effect: modifies the layer's neurons' weight and bias
+		require
+			Outputs_Network_Size: a_expected_output.count = layers.last.count
+		local
+			l_delta_output, l_sigmoid_prime, l_error: REAL_64
+		do
+			create {ARRAYED_LIST[REAL_64]} Result.make(layers.last.count)
+			from
+				a_expected_output.start
+				layers.last.start
+			until
+				a_expected_output.exhausted or layers.last.exhausted
+			loop
+				l_delta_output := layers.last.item.output.value - a_expected_output.item
+				l_sigmoid_prime := sigmoid_prime(layers.last.item.weighted_total_input)
+				l_error := l_delta_output * l_sigmoid_prime
+				adjust_neuron(layers.last.item, l_error)
+				Result.extend(l_error)
+				a_expected_output.forth
+				layers.last.forth
+			end
 		end
 
 	feed_forward(a_input: LIST[REAL_64])
@@ -131,44 +191,44 @@ feature -- Access
 			end
 		end
 
-	matrix_product_vector(a_matrix: LIST[LIST[REAL_64]]; a_vector: LIST[REAL_64]): LIST[REAL_64]
+	neuron_layer_error(a_neuron_layer: LIST[NEURON]; a_previous_error: LIST[REAL_64]): LIST[REAL_64]
+			-- Calculates `a_neuron_layer's error using the previous layer's error `a_previous_error'
+			-- Side effect: modifies the layer's neurons' weight and bias
 		require
-			Matrix_Width_Equals_Vector_Size: across a_matrix as la_matrix all la_matrix.item.count = a_vector.count end
-		do
-			create {ARRAYED_LIST[REAL_64]} Result.make_filled(a_vector.count)
-			across a_matrix as la_matrix loop
-				from
-					a_matrix.item.start
-					a_vector.start
-					Result.start
-				until
-					a_matrix.item.exhausted or a_vector.exhausted or Result.exhausted
-				loop
-					Result.replace(Result.item + (la_matrix.item.item * a_vector.item))
-					a_matrix.item.forth
-					a_vector.forth
-					Result.forth
+			Matrix_Width_Equals_Vector_Size: across a_neuron_layer as la_layer all
+					attached {HOOKED_OUTPUT} la_layer.item.output as la_output implies la_output.connections.count = a_previous_error.count
 				end
-				a_matrix.forth
+		do
+			create {ARRAYED_LIST[REAL_64]} Result.make_filled(a_previous_error.count)
+			Result.start
+			across a_neuron_layer as la_layer loop
+				if attached {HOOKED_OUTPUT} la_layer.item.output as la_output then
+					from
+						la_output.connections.start
+						a_previous_error.start
+					until
+						la_output.connections.exhausted or a_previous_error.exhausted
+					loop
+						Result.replace(Result.item + (la_output.connections.item.weight * a_previous_error.item))
+						la_output.connections.forth
+						a_previous_error.forth
+					end
+				end
+				Result.replace(Result.item * sigmoid_prime(la_layer.item.weighted_total_input))
+				adjust_neuron(la_layer.item, Result.item)
+				Result.forth
 			end
 		end
 
-	hadamard_product(a_vector1, a_vector2: LIST[REAL_64]): LIST[REAL_64]
-			-- Result[i] = `a_vector1'[i] * `a_vector2'[i]
-		require
-			Vectors_Same_Size: a_vector1.count = a_vector2.count
+	adjust_neuron(a_neuron: NEURON; a_error: REAL_64)
+			-- Adjusts the neuron `a_neuron's bias and weight using the error `a_error'
 		do
-			create {ARRAYED_LIST[REAL_64]} Result.make(a_vector1.count)
-			from
-				a_vector1.start
-				a_vector2.start
-			until
-				a_vector1.exhausted or a_vector2.exhausted
-			loop
-				Result.extend(a_vector1.item * a_vector2.item)
-				a_vector1.forth
-				a_vector2.forth
+			across a_neuron.inputs as la_inputs loop
+				if attached {INPUT_CONNECTION} la_inputs.item as la_input then
+					la_input.set_weight(la_input.weight + learning_rate * la_input.weighted_input * a_error)
+				end
 			end
+			a_neuron.bias := a_neuron.bias + learning_rate * a_error
 		end
 
 invariant
