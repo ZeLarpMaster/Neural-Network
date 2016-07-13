@@ -176,7 +176,7 @@ feature -- Access
 				a_input.forth
 			end
 			from
-				layers.go_i_th(2)
+				layers.start
 			until
 				layers.exhausted
 			loop
