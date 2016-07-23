@@ -16,6 +16,7 @@ create
 feature {NONE} -- Initialization
 
 	make(a_layers_count: LIST[INTEGER])
+			-- Initializes `Current' to have `a_layers_count' layers with `a_layers_count.item' neurons on each layer
 		require
 			More_Than_One_Layer: a_layers_count.count > 1
 		local
@@ -25,6 +26,7 @@ feature {NONE} -- Initialization
 			l_output: OUTPUT
 			l_input: INPUT
 		do
+			learning_rate := 0.75
 			l_previous_output_count := 1
 			create {ARRAYED_LIST[ARRAYED_LIST[NEURON]]} layers.make(a_layers_count.count)
 			from
@@ -63,30 +65,19 @@ feature {NONE} -- Initialization
 			end
 		end
 
-feature {NONE}
-	random_sequence: RANDOM
-			-- Returns a new random sequence
-		local
-			l_time: TIME
-			l_seed: INTEGER
-		once
-			create l_time.make_now
-			l_seed := l_time.hour
-			l_seed := l_seed * 60 + l_time.minute
-			l_seed := l_seed * 60 + l_time.second
-			l_seed := l_seed * 1000 + l_time.milli_second
-			create Result.set_seed (l_seed)
+	make_with_learning_rate(a_layers_count: LIST[INTEGER]; a_learning_rate: REAL_64)
+		do
+			make(a_layers_count)
+			learning_rate := a_learning_rate
 		end
-
-feature {NONE} -- Implementation
-
-	learning_rate: REAL_64 = 0.75
-			-- Learning rate of the network. Might become an argument to make.
 
 feature -- Access
 
+	learning_rate: REAL_64
+			-- Learning rate of the network.
+
 	layers: LIST[LIST[NEURON]]
-			-- Actual layers
+			-- Neuron layers
 
 	use_network(a_input: LIST[REAL_64]): LIST[REAL_64]
 			-- Use the neural network with input `a_input' and returns the output
@@ -104,13 +95,15 @@ feature -- Access
 		end
 
 	learn_back_propagate(a_input, a_expected_output: LIST[REAL_64])
-			-- Make the network learn the `a_input', `a_expected_output' pair
+			-- Make the network learn that `a_input' should output `a_expected_output'
 		require
 			Inputs_Network_Size: a_expected_output.count = layers.last.count
 		do
 			feed_forward(a_input)
 			backpropagate_error(a_expected_output)
 		end
+
+feature {NONE} -- Implementation
 
 	backpropagate_error(a_expected_output: LIST[REAL_64])
 			-- Propagates the output error compared to `a_expected_output' from the end to the layer 2 of the network
@@ -136,11 +129,11 @@ feature -- Access
 
 	calculate_output_error(a_expected_output: LIST[REAL_64]): LIST[REAL_64]
 			-- Calculates and returns the error of the output
-			-- Side effect: modifies the layer's neurons' weight and bias
+			-- Side effect: modifies the output's neurons' weight and bias
 		require
 			Outputs_Network_Size: a_expected_output.count = layers.last.count
 		local
-			l_delta_output, l_sigmoid_prime, l_error: REAL_64
+			l_delta_output, l_delta_input, l_error: REAL_64
 		do
 			create {ARRAYED_LIST[REAL_64]} Result.make(layers.last.count)
 			from
@@ -150,8 +143,8 @@ feature -- Access
 				a_expected_output.exhausted or layers.last.exhausted
 			loop
 				l_delta_output := layers.last.item.output.value - a_expected_output.item
-				l_sigmoid_prime := sigmoid_prime(layers.last.item.weighted_total_input)
-				l_error := l_delta_output * l_sigmoid_prime
+				l_delta_input := sigmoid_prime(layers.last.item.weighted_total_input)
+				l_error := l_delta_output * l_delta_input
 				adjust_neuron(layers.last.item, l_error)
 				Result.extend(l_error)
 				a_expected_output.forth
@@ -160,8 +153,7 @@ feature -- Access
 		end
 
 	feed_forward(a_input: LIST[REAL_64])
-			-- Calculate the activation of each neuron from the output of the previous layer using `a_input' as input
-			-- TODO: Redo this ^
+			-- Set the first layer's output to `a_input' and propagate the layer's output to the next layer
 		require
 			Input_Count_Equals_Input_Count: a_input.count = layers.at(1).count
 		do
@@ -193,7 +185,7 @@ feature -- Access
 		end
 
 	neuron_layer_error(a_neuron_layer: LIST[NEURON]; a_previous_error: LIST[REAL_64]): LIST[REAL_64]
-			-- Calculates `a_neuron_layer's error using the previous layer's error `a_previous_error'
+			-- Calculates and returns `a_neuron_layer's error using the previous layer's error `a_previous_error'
 			-- Side effect: modifies the layer's neurons' weight and bias
 		require
 			Matrix_Width_Equals_Vector_Size: across a_neuron_layer as la_layer all

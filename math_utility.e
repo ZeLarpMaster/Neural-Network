@@ -64,4 +64,18 @@ feature -- Access
 			end
 		end
 
+	random_sequence: RANDOM
+			-- Returns a new random sequence
+		local
+			l_time: TIME
+			l_seed: INTEGER
+		once
+			create l_time.make_now
+			l_seed := l_time.hour
+			l_seed := l_seed * 60 + l_time.minute
+			l_seed := l_seed * 60 + l_time.second
+			l_seed := l_seed * 1000 + l_time.milli_second
+			create Result.set_seed (l_seed)
+		end
+
 end
