@@ -226,10 +226,10 @@ feature -- Access
 		do
 			across a_neuron.inputs as la_inputs loop
 				if attached {INPUT_CONNECTION} la_inputs.item as la_input then
-					la_input.set_weight(la_input.weight + learning_rate * la_input.weighted_input * a_error)
+					la_input.set_weight(la_input.weight - learning_rate * la_input.activation * a_error)
 				end
 			end
-			a_neuron.bias := a_neuron.bias + learning_rate * a_error
+			a_neuron.bias := a_neuron.bias - learning_rate * a_error
 		end
 
 invariant

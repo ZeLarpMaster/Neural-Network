@@ -56,7 +56,11 @@ feature -- Access
 			end
 			weighted_total_input := weighted_total_input + bias
 			if is_sigmoidal then
-				output.set_value(sigmoid(weighted_total_input))
+				if not attached {INPUT_CONNECTION} inputs.first then
+					output.set_value(weighted_total_input)
+				else
+					output.set_value(sigmoid(weighted_total_input))
+				end
 			else
 				if weighted_total_input > 0 then
 					output.set_value(1)
