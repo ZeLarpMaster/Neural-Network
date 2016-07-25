@@ -103,6 +103,25 @@ feature -- Access
 			backpropagate_error(a_expected_output)
 		end
 
+feature -- Serialization
+
+	export_to_path(a_path: PATH)
+			-- Serializes `Current' and writes it in a file located at `a_path'
+		local
+			l_file: RAW_FILE
+		do
+			create l_file.make_with_path(a_path)
+			l_file.open_write
+			export_to_file(l_file)
+			l_file.close
+		end
+
+	export_to_file(a_file: RAW_FILE)
+			-- Serializes `Current' and writes it in `a_file'
+		do
+			
+		end
+
 feature {NONE} -- Implementation
 
 	backpropagate_error(a_expected_output: LIST[REAL_64])
