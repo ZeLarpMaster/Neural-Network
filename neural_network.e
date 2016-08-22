@@ -8,7 +8,12 @@ class
 	NEURAL_NETWORK
 
 inherit
+	ANY
 	MATH_UTILITY
+		export
+			{NONE} all
+		end
+
 
 create
 	make
