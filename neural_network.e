@@ -118,8 +118,32 @@ feature -- Serialization
 
 	export_to_file(a_file: RAW_FILE)
 			-- Serializes `Current' and writes it in `a_file'
+			-- The serialization format is:
+			-- integer --> the number of layers (referred to as l_cnt)
+			-- l_cnt integers --> the number of neurons in each layer
+			-- For each neuron, the following:
+				-- double --> the bias of the neuron
+				-- boolean --> the type of the neuron (is_sigmoidal)
+				-- boolean --> whether or not the neuron has input connections
+				-- if it's the case, for each input the neuron has, the following:
+					-- double --> the weight of the connection to the previous layer's neuron
 		do
-			
+			a_file.put_integer(layers.count)
+			across layers as la_layers loop
+				a_file.put_integer(la_layers.item.count)
+			end
+			across layers as la_layers loop
+				across la_layers.item as la_layer loop
+					a_file.put_integer(la_layer.item.bias)
+					a_file.put_boolean(la_layer.item.is_sigmoidal)
+					a_file.put_boolean(attached {INPUT_CONNECTION} la_layer.item.inputs.first)
+					across la_layer.item.inputs as la_inputs loop
+						if attached {INPUT_CONNECTION} la_inputs.item as la_input then
+							a_file.put_double(la_input.weight)
+						end
+					end
+				end
+			end
 		end
 
 feature {NONE} -- Implementation
