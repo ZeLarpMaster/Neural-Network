@@ -14,6 +14,7 @@
 				<exclude>/.svn$</exclude>
 				<exclude>/CVS$</exclude>
 				<exclude>/EIFGENs$</exclude>
+				<exclude>/.git$</exclude>
 			</file_rule>
 		</cluster>
 	</target>
