@@ -16,7 +16,10 @@ inherit
 
 
 create
-	make
+	make,
+	make_with_learning_rate,
+	make_from_file_path,
+	make_from_file
 
 feature {NONE} -- Initialization
 
@@ -71,9 +74,38 @@ feature {NONE} -- Initialization
 		end
 
 	make_with_learning_rate(a_layers_count: LIST[INTEGER]; a_learning_rate: REAL_64)
+			-- Initializes `Current' to have `a_layers_count' layers
+			-- with `a_layers_count.item' neurons on each layer
+			-- and `a_learning_rate' as it's learning rate
+		require
+			More_Than_One_Layer: a_layers_count.count > 1
 		do
 			make(a_layers_count)
 			learning_rate := a_learning_rate
+		end
+
+	make_from_file_path(a_path: PATH)
+			-- Initializes `Current' from the content of the file located at `a_path'
+		local
+			l_file: RAW_FILE
+		do
+			l_file.make_with_path(a_path)
+			l_file.open_read
+			make_from_file(l_file)
+			l_file.close
+		end
+
+	make_from_file(a_file: RAW_FILE)
+			-- Initializes `Current' from the content of `a_file'
+			-- Does not handle opening/closing
+		require
+			File_Opened: a_file.is_open_read
+			File_Readable: a_file.readable
+		local
+			l_version: INTEGER
+		do
+			a_file.read_integer
+			l_version := a_file.last_integer
 		end
 
 feature -- Access
@@ -111,7 +143,8 @@ feature -- Access
 feature -- Serialization
 
 	export_to_path(a_path: PATH)
-			-- Serializes `Current' and writes it in a file located at `a_path'
+			-- Opens a {RAW_FILE} located at `a_path' and calls `export_to_file' with it.
+			-- See `export_to_file' for further documentation
 		local
 			l_file: RAW_FILE
 		do
@@ -122,26 +155,30 @@ feature -- Serialization
 		end
 
 	export_to_file(a_file: RAW_FILE)
-			-- Serializes `Current' and writes it in `a_file'
+			-- Writes the vital information to recreate `Current' into `a_file'
 			-- The serialization format is:
+			-- integer --> the version of exporting format (Current version: 1)
+			-- double --> the learning rate of `Current'
 			-- integer --> the number of layers (referred to as l_cnt)
 			-- l_cnt integers --> the number of neurons in each layer
 			-- For each neuron, the following:
 				-- double --> the bias of the neuron
 				-- boolean --> the type of the neuron (is_sigmoidal)
-				-- boolean --> whether or not the neuron has input connections
-				-- if it's the case, for each input the neuron has, the following:
+				-- integer --> the number of inputs the neuron has
+				-- if it's the case, for each input_connection the neuron has, the following:
 					-- double --> the weight of the connection to the previous layer's neuron
 		do
+			a_file.put_integer(1)
+			a_file.put_double(learning_rate)
 			a_file.put_integer(layers.count)
 			across layers as la_layers loop
 				a_file.put_integer(la_layers.item.count)
 			end
 			across layers as la_layers loop
 				across la_layers.item as la_layer loop
-					a_file.put_integer(la_layer.item.bias)
+					a_file.put_double(la_layer.item.bias)
 					a_file.put_boolean(la_layer.item.is_sigmoidal)
-					a_file.put_boolean(attached {INPUT_CONNECTION} la_layer.item.inputs.first)
+					a_file.put_integer(la_layer.item.inputs.count)
 					across la_layer.item.inputs as la_inputs loop
 						if attached {INPUT_CONNECTION} la_inputs.item as la_input then
 							a_file.put_double(la_input.weight)
