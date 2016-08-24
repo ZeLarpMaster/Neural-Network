@@ -298,8 +298,6 @@ feature -- Serialization
 			a_file.put_integer(layers.count)
 			across layers as la_layers loop
 				a_file.put_integer(la_layers.item.count)
-			end
-			across layers as la_layers loop
 				across la_layers.item as la_layer loop
 					a_file.put_double(la_layer.item.bias)
 					a_file.put_integer(la_layer.item.is_sigmoidal.to_integer)
