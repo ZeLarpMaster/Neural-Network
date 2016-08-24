@@ -19,7 +19,8 @@ inherit
 		end
 
 create
-	make
+	make,
+	make_with_weight
 
 feature {NONE} -- Initialization
 
@@ -28,6 +29,14 @@ feature {NONE} -- Initialization
 		do
 			activation := a_initial_activation
 			weight := 1
+		end
+
+	make_with_weight(a_initial_activation, a_initial_weight: REAL_64)
+			-- Initializes `Current' with `activation' set to `a_initial_activation'
+			-- and `weight' set to `a_initial_weight'
+		do
+			activation := a_initial_activation
+			weight := a_initial_weight
 		end
 
 feature -- Access
