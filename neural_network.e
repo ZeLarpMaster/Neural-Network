@@ -159,7 +159,6 @@ feature {NONE} -- Import versions
 					l_neuron_in_layer_count := a_file.last_integer
 					create l_layer_content.make(l_neuron_in_layer_count)
 					across 1 |..| l_neuron_in_layer_count as la_neurons loop
-						random_sequence.forth
 						if i = l_layer_count then
 							create l_output.make(0)
 						else
